@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: examiner
+  namespace: apps
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: examiner
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: examiner
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      serviceAccountName: examiner
+      containers:
+        - name: examiner
+          securityContext:
+            allowPrivilegeEscalation: false
+          image: "quay.io/heubeck/examiner:1.9.1" # {"$imagepolicy": "apps:examiner"}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: examiner-env
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /.well-known/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /.well-known/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 50Mi

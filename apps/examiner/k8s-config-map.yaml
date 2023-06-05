@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: examiner-env
+  namespace: apps
+data:
+  ECHO_VALUE: "🎢 CloudLand 2023 R0ckX 🎸"
