@@ -1,46 +1,58 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: examiner
+  name: podinfo
   namespace: apps
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: examiner
-  replicas: 1
+      app.kubernetes.io/name: podinfo
+  replicas: 2
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: examiner
+        app.kubernetes.io/name: podinfo
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
-      serviceAccountName: examiner
+      serviceAccountname: podinfo
       containers:
-        - name: examiner
+        - name: podinfo
           securityContext:
-            allowPrivilegeEscalation: false
-          image: "quay.io/heubeck/examiner:1.10.1" # {"$imagepolicy": "apps:examiner"}
+            allowPrivilegeEscalation: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          image: "ghcr.io/stefanprodan/podinfo:6.3.6" # {"$imagepolicy": "apps:podinfo"}
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
-                name: examiner-env
+                name: podinfo-env
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 9898
               protocol: TCP
           livenessProbe:
-            httpGet:
-              path: /.well-known/live
-              port: 8080
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
             timeoutSeconds: 5
           readinessProbe:
-            httpGet:
-              path: /.well-known/ready
-              port: 8080
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
